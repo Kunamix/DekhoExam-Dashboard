@@ -175,13 +175,19 @@ export const useBulkUploadQuestions = () => {
       return data; // ✅ Handle both nested and flat responses
     },
     onSuccess: (response) => {
-      const uploaded = response?.uploaded || 0;
-      toast.success(`Successfully uploaded ${uploaded} questions`);
+      const result = response?.data;
+      const created = result?.successfullyCreated || 0;
+      const failed = result?.failedRows || 0;
+      toast.success(
+        `Uploaded ${created} questions successfully${failed > 0 ? `, ${failed} failed` : ""}`,
+      );
       queryClient.invalidateQueries({ queryKey: ["questions"] });
       queryClient.invalidateQueries({ queryKey: ["question-stats"] });
     },
     onError: (error: AxiosError<{ message: string }>) => {
-      toast.error(error.response?.data?.message || "Failed to upload questions");
+      toast.error(
+        error.response?.data?.message || "Failed to upload questions",
+      );
     },
   });
 };

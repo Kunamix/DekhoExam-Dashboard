@@ -21,11 +21,10 @@ import {
   useUpdateTest,
   useDeleteTest,
   Test,
-  useTestRankings, 
+  useTestRankings,
 } from "@/hooks/useTest";
 import { useCategories } from "@/hooks/useCategory";
 import { useSubjects } from "@/hooks/useSubject";
-
 
 export const Tests = () => {
   const {
@@ -60,13 +59,12 @@ export const Tests = () => {
     isActive: true,
   });
   const {
-  data: rankings,
-  isLoading: isRankLoading,
-  isError: isRankError,
-} = useTestRankings(selectedTestId || undefined);
+    data: rankings,
+    isLoading: isRankLoading,
+    isError: isRankError,
+  } = useTestRankings(selectedTestId || undefined);
 
-console.log("Rankings Data:", rankings); // Debugging line
-
+  console.log("Rankings Data:", rankings); // Debugging line
 
   const tests = (testsData?.data?.tests as Test[]) || [];
   const categories = categoriesData?.data?.categories || [];
@@ -92,7 +90,7 @@ console.log("Rankings Data:", rankings); // Debugging line
     if (!selectedCat?.categorySubjects) return 0;
     return selectedCat.categorySubjects.reduce(
       (sum: number, item: any) => sum + (item.questionsPerTest ?? 0),
-      0
+      0,
     );
   };
 
@@ -104,7 +102,7 @@ console.log("Rankings Data:", rankings); // Debugging line
   };
 
   const formatErrorForDisplay = (
-    errorMsg: string
+    errorMsg: string,
   ): { title: string; details: string[] } => {
     if (errorMsg.includes("Insufficient unused questions")) {
       const lines = errorMsg.split("\n").filter((line) => line.trim());
@@ -176,7 +174,7 @@ console.log("Rankings Data:", rankings); // Debugging line
     if (selectedCat?.categorySubjects) {
       const total = selectedCat.categorySubjects.reduce(
         (sum: number, item: any) => sum + (item.questionsPerTest ?? 0),
-        0
+        0,
       );
       setFormData((prev) => ({
         ...prev,
@@ -278,8 +276,8 @@ console.log("Rankings Data:", rankings); // Debugging line
       label: "Marking",
       render: (item: Test) => (
         <div className="flex items-center gap-1">
-          <Award className="w-4 h-4 text-muted-foreground" />
-          +{item.positiveMarks}, -{item.negativeMarks}
+          <Award className="w-4 h-4 text-muted-foreground" />+
+          {item.positiveMarks}, -{item.negativeMarks}
         </div>
       ),
     },
@@ -301,48 +299,49 @@ console.log("Rankings Data:", rankings); // Debugging line
           onChange={() => handleToggleActive(item.id, item.isActive)}
         />
       ),
-    },{
-  key: "actions",
-  label: "Actions",
-  render: (item: Test) => (
-    <div className="flex gap-2">
-      {/* View Rankings */}
-      <button
-        onClick={() => {
-          setSelectedTestId(item.id);
-          setIsRankingModalOpen(true);
-        }}
-        className="p-2 rounded-lg hover:bg-muted transition-colors"
-        title="View Rankings"
-      >
-        <Award className="w-4 h-4 text-primary" />
-      </button>
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (item: Test) => (
+        <div className="flex gap-2">
+          {/* View Rankings */}
+          <button
+            onClick={() => {
+              setSelectedTestId(item.id);
+              setIsRankingModalOpen(true);
+            }}
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
+            title="View Rankings"
+          >
+            <Award className="w-4 h-4 text-primary" />
+          </button>
 
-      {/* Edit */}
-      <button
-        onClick={() => handleOpenModal(item)}
-        className="p-2 rounded-lg hover:bg-muted transition-colors"
-        title="Edit test"
-      >
-        <Edit className="w-4 h-4" />
-      </button>
+          {/* Edit */}
+          <button
+            onClick={() => handleOpenModal(item)}
+            className="p-2 rounded-lg hover:bg-muted transition-colors"
+            title="Edit test"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
 
-      {/* Delete */}
-      <button
-        onClick={() => handleDelete(item.id)}
-        disabled={deleteMutation.isPending}
-        className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors disabled:opacity-50"
-        title="Delete test"
-      >
-        {deleteMutation.isPending && editingTest?.id === item.id ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Trash2 className="w-4 h-4" />
-        )}
-      </button>
-    </div>
-  ),
-}
+          {/* Delete */}
+          <button
+            onClick={() => handleDelete(item.id)}
+            disabled={deleteMutation.isPending}
+            className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors disabled:opacity-50"
+            title="Delete test"
+          >
+            {deleteMutation.isPending && editingTest?.id === item.id ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -438,7 +437,7 @@ console.log("Rankings Data:", rankings); // Debugging line
                       <p key={idx} className="text-sm text-destructive/90">
                         {detail}
                       </p>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -462,9 +461,7 @@ console.log("Rankings Data:", rankings); // Debugging line
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Category *
-            </label>
+            <label className="block text-sm font-medium mb-1">Category *</label>
             <select
               value={formData.categoryId}
               onChange={(e) => handleCategoryChange(e.target.value)}
@@ -480,33 +477,29 @@ console.log("Rankings Data:", rankings); // Debugging line
             </select>
           </div>
 
-          {formData.categoryId &&
-            getSelectedCategory()?.categorySubjects && (
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <h4 className="font-medium text-sm">
-                  Question Distribution for {getCategoryName(formData.categoryId)}
-                </h4>
-                {getSelectedCategory()?.categorySubjects?.map((item: any) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between text-sm"
-                  >
-                    <span className="text-muted-foreground">
-                      {item?.subject?.name}
-                    </span>
-                    <span className="font-medium">
-                      {item?.questionsPerTest} questions
-                    </span>
-                  </div>
-                ))}
-                <div className="flex justify-between text-sm pt-2 border-t border-border">
-                  <span className="font-medium">Total Questions:</span>
-                  <span className="font-semibold text-primary">
-                    {calculateTotalQuestions()} questions
+          {formData.categoryId && getSelectedCategory()?.categorySubjects && (
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <h4 className="font-medium text-sm">
+                Question Distribution for {getCategoryName(formData.categoryId)}
+              </h4>
+              {getSelectedCategory()?.categorySubjects?.map((item: any) => (
+                <div key={item.id} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {item?.subject?.name}
+                  </span>
+                  <span className="font-medium">
+                    {item?.questionsPerTest} questions
                   </span>
                 </div>
+              ))}
+              <div className="flex justify-between text-sm pt-2 border-t border-border">
+                <span className="font-medium">Total Questions:</span>
+                <span className="font-semibold text-primary">
+                  {calculateTotalQuestions()} questions
+                </span>
               </div>
-            )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -574,7 +567,8 @@ console.log("Rankings Data:", rankings); // Debugging line
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    positiveMarks: e.target.value === '' ? 0 : parseFloat(e.target.value),
+                    positiveMarks:
+                      e.target.value === "" ? 0 : parseFloat(e.target.value),
                   })
                 }
                 className="input-field"
@@ -594,13 +588,14 @@ console.log("Rankings Data:", rankings); // Debugging line
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    negativeMarks: e.target.value === '' ? 0 : parseFloat(e.target.value),
+                    negativeMarks:
+                      e.target.value === "" ? 0 : parseFloat(e.target.value),
                   })
                 }
                 className={`input-field ${
                   formData.negativeMarks > formData.positiveMarks
-                    ? 'border-destructive focus:ring-destructive'
-                    : ''
+                    ? "border-destructive focus:ring-destructive"
+                    : ""
                 }`}
                 min={0}
                 max={formData.positiveMarks}
@@ -635,14 +630,45 @@ console.log("Rankings Data:", rankings); // Debugging line
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Active Status</label>
-            <Toggle
-              checked={formData.isActive}
-              onChange={(checked) =>
-                setFormData({ ...formData, isActive: checked })
-              }
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+              <div>
+                <label className="text-sm font-medium">Test Type</label>
+                <p className="text-xs text-muted-foreground">
+                  {formData.isPaid
+                    ? "Paid - requires subscription"
+                    : "Free - available to all"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-medium ${!formData.isPaid ? "text-success" : "text-muted-foreground"}`}
+                >
+                  Free
+                </span>
+                <Toggle
+                  checked={formData.isPaid}
+                  onChange={(checked) =>
+                    setFormData({ ...formData, isPaid: checked })
+                  }
+                />
+                <span
+                  className={`text-xs font-medium ${formData.isPaid ? "text-primary" : "text-muted-foreground"}`}
+                >
+                  Paid
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+              <label className="text-sm font-medium">Active Status</label>
+              <Toggle
+                checked={formData.isActive}
+                onChange={(checked) =>
+                  setFormData({ ...formData, isActive: checked })
+                }
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -669,76 +695,73 @@ console.log("Rankings Data:", rankings); // Debugging line
         </form>
       </Modal>
       {/* Rankings Modal */}
-<Modal
-  isOpen={isRankingModalOpen}
-  onClose={() => {
-    setIsRankingModalOpen(false);
-    setSelectedTestId(null);
-  }}
-  title="Test Rankings"
-  size="lg"
->
-  {isRankLoading ? (
-    <div className="flex justify-center p-8">
-      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-    </div>
-  ) : isRankError ? (
-    <div className="text-center text-destructive p-6">
-      Failed to load rankings
-    </div>
-  ) : rankings ? (
-    <div className="space-y-6">
-      {/* Top Rankers */}
-      <div>
-        <div className="flex justify-between mb-3">
-          <h4 className="font-semibold">Top Rankers</h4>
-          <span className="text-sm text-muted-foreground">
-            Total Participants: {rankings.totalParticipants}
-          </span>
-        </div>
-
-        <div className="space-y-2 max-h-80 overflow-y-auto">
-          {rankings.topRankers?.length ? (
-            rankings.topRankers.map((user: any) => (
-              <div
-                key={user.rank}
-                className="flex justify-between items-center border rounded-lg p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="font-bold text-primary w-8">
-                    #{user.rank}
-                  </div>
-
-                  <div>
-                    <div className="font-medium">
-                      {user.userName}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {user.percentage}%
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-sm font-medium">
-                  {user.totalMarks} marks
-                </div>
+      <Modal
+        isOpen={isRankingModalOpen}
+        onClose={() => {
+          setIsRankingModalOpen(false);
+          setSelectedTestId(null);
+        }}
+        title="Test Rankings"
+        size="lg"
+      >
+        {isRankLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : isRankError ? (
+          <div className="text-center text-destructive p-6">
+            Failed to load rankings
+          </div>
+        ) : rankings ? (
+          <div className="space-y-6">
+            {/* Top Rankers */}
+            <div>
+              <div className="flex justify-between mb-3">
+                <h4 className="font-semibold">Top Rankers</h4>
+                <span className="text-sm text-muted-foreground">
+                  Total Participants: {rankings.totalParticipants}
+                </span>
               </div>
-            ))
-          ) : (
-            <div className="text-center text-muted-foreground py-6">
-              No ranking data available
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className="text-center text-muted-foreground py-6">
-      No ranking data found
-    </div>
-  )}
-</Modal>
 
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {rankings.topRankers?.length ? (
+                  rankings.topRankers.map((user: any) => (
+                    <div
+                      key={user.rank}
+                      className="flex justify-between items-center border rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="font-bold text-primary w-8">
+                          #{user.rank}
+                        </div>
+
+                        <div>
+                          <div className="font-medium">{user.userName}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {user.percentage}%
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-sm font-medium">
+                        {user.totalMarks} marks
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground py-6">
+                    No ranking data available
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground py-6">
+            No ranking data found
+          </div>
+        )}
+      </Modal>
     </DashboardLayout>
   );
 };

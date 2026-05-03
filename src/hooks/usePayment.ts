@@ -105,16 +105,12 @@ export const useExportPayments = () => {
       return data;
     },
     onSuccess: (response) => {
-      const blob = new Blob([response.data], {
+      const blob = new Blob([blobData], {
         type: "text/csv",
       });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      const filename =
-        response.headers["content-disposition"]
-          ?.split("filename=")[1]
-          ?.replace(/['"]/g, "") ||
-        `payments_export_${new Date().toISOString().split("T")[0]}.csv`;
+      const filename = `payments_export_${new Date().toISOString().split("T")[0]}.csv`;
 
       link.href = url;
       link.setAttribute("download", filename);

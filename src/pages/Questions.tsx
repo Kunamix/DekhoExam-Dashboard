@@ -53,6 +53,40 @@ interface Question {
   };
 }
 
+const csvHeaders = [
+  "Question",
+  "Option A",
+  "Option B",
+  "Option C",
+  "Option D",
+  "Correct Answer",
+  "Explanation",
+  "Difficulty",
+];
+
+const csvSampleData = [
+  {
+    Question: "What is the capital of India?",
+    "Option A": "Mumbai",
+    "Option B": "Delhi",
+    "Option C": "Chennai",
+    "Option D": "Kolkata",
+    "Correct Answer": "B",
+    Explanation: "Delhi is the capital of India",
+    Difficulty: "EASY",
+  },
+  {
+    Question: "What is 2+2?",
+    "Option A": "3",
+    "Option B": "4",
+    "Option C": "5",
+    "Option D": "6",
+    "Correct Answer": "B",
+    Explanation: "Basic arithmetic: 2+2=4",
+    Difficulty: "EASY",
+  },
+];
+
 export const Questions = () => {
   const [limit, setLimit] = useState(10);
   const [bulkSubjectId, setBulkSubjectId] = useState("");
@@ -62,34 +96,27 @@ export const Questions = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState(1);
+  const [showCsvFormat, setShowCsvFormat] = useState(false);
 
-  const { 
-    data: subjectsData,
-    isError: isSubjectsError 
-  } = useSubjects();
-  
-  const { 
-    data: topicsData,
-    isError: isTopicsError 
-  } = useTopics(selectedSubject);
-  
-  const { 
-    data: statsData,
-    isError: isStatsError 
-  } = useQuestionStats();
+  const { data: subjectsData, isError: isSubjectsError } = useSubjects();
 
-  const { 
-    data: questionsResponse, 
+  const { data: topicsData, isError: isTopicsError } =
+    useTopics(selectedSubject);
+
+  const { data: statsData, isError: isStatsError } = useQuestionStats();
+
+  const {
+    data: questionsResponse,
     isLoading: isQuestionsLoading,
-    isError: isQuestionsError 
+    isError: isQuestionsError,
   } = useQuestions({
-      subjectId: selectedSubject,
-      topicId: selectedTopic,
-      difficultyLevel: selectedDifficulty as any,
-      search: searchQuery,
-      page,
-      limit,
-    });
+    subjectId: selectedSubject,
+    topicId: selectedTopic,
+    difficultyLevel: selectedDifficulty as any,
+    search: searchQuery,
+    page,
+    limit,
+  });
 
   const subjects = subjectsData?.data?.subjects || [];
   const topics = topicsData?.data?.topics || [];
@@ -102,7 +129,7 @@ export const Questions = () => {
   const stats = statsData?.data || {
     total: 0,
     active: 0,
-    byDifficulty: { EASY: 0, MEDIUM: 0, HARD: 0 }
+    byDifficulty: { EASY: 0, MEDIUM: 0, HARD: 0 },
   };
 
   const createMutation = useCreateQuestion();
@@ -118,13 +145,15 @@ export const Questions = () => {
   // Image state
   const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
   const [questionImagePreview, setQuestionImagePreview] = useState<string>("");
-  const [explanationImageFile, setExplanationImageFile] = useState<File | null>(null);
-  const [explanationImagePreview, setExplanationImagePreview] = useState<string>("");
-  
-  // NEW: Track if user wants to delete existing images
+  const [explanationImageFile, setExplanationImageFile] = useState<File | null>(
+    null,
+  );
+  const [explanationImagePreview, setExplanationImagePreview] =
+    useState<string>("");
+
   const [removeQuestionImage, setRemoveQuestionImage] = useState(false);
   const [removeExplanationImage, setRemoveExplanationImage] = useState(false);
-  
+
   const questionImageInputRef = useRef<HTMLInputElement>(null);
   const explanationImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -151,63 +180,55 @@ export const Questions = () => {
 
   const handleImageSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: 'question' | 'explanation'
+    type: "question" | "explanation",
   ) => {
     const file = e.target.files?.[0];
-    
     if (!file) return;
 
-    // Check file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       toast.error("Please select a valid image file");
-      if (type === 'question' && questionImageInputRef.current) {
+      if (type === "question" && questionImageInputRef.current) {
         questionImageInputRef.current.value = "";
-      } else if (type === 'explanation' && explanationImageInputRef.current) {
+      } else if (type === "explanation" && explanationImageInputRef.current) {
         explanationImageInputRef.current.value = "";
       }
       return;
     }
 
-    // Check file size (2MB = 2 * 1024 * 1024 bytes)
     const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error("Image size must be less than 2MB. Please choose a smaller image.");
-      if (type === 'question' && questionImageInputRef.current) {
+      if (type === "question" && questionImageInputRef.current) {
         questionImageInputRef.current.value = "";
-      } else if (type === 'explanation' && explanationImageInputRef.current) {
+      } else if (type === "explanation" && explanationImageInputRef.current) {
         explanationImageInputRef.current.value = "";
       }
       return;
     }
 
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       const preview = reader.result as string;
-      
-      if (type === 'question') {
+      if (type === "question") {
         setQuestionImageFile(file);
         setQuestionImagePreview(preview);
-        setRemoveQuestionImage(false); // Clear delete flag when uploading new image
+        setRemoveQuestionImage(false);
       } else {
         setExplanationImageFile(file);
         setExplanationImagePreview(preview);
-        setRemoveExplanationImage(false); // Clear delete flag when uploading new image
+        setRemoveExplanationImage(false);
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveImage = (type: 'question' | 'explanation') => {
-    if (type === 'question') {
+  const handleRemoveImage = (type: "question" | "explanation") => {
+    if (type === "question") {
       setQuestionImageFile(null);
       setQuestionImagePreview("");
-      
-      // If editing and there was an existing image, mark for deletion
       if (editingQuestion && formData.questionImageUrl) {
         setRemoveQuestionImage(true);
       }
-      
       setFormData({ ...formData, questionImageUrl: "" });
       if (questionImageInputRef.current) {
         questionImageInputRef.current.value = "";
@@ -215,12 +236,9 @@ export const Questions = () => {
     } else {
       setExplanationImageFile(null);
       setExplanationImagePreview("");
-      
-      // If editing and there was an existing image, mark for deletion
       if (editingQuestion && formData.explanationImageUrl) {
         setRemoveExplanationImage(true);
       }
-      
       setFormData({ ...formData, explanationImageUrl: "" });
       if (explanationImageInputRef.current) {
         explanationImageInputRef.current.value = "";
@@ -246,8 +264,6 @@ export const Questions = () => {
         difficultyLevel: question.difficultyLevel || question.difficulty,
         isActive: question.isActive,
       });
-      
-      // Set existing image previews
       setQuestionImagePreview(question.questionImageUrl || "");
       setExplanationImagePreview(question.explanationImageUrl || "");
       setQuestionImageFile(null);
@@ -271,8 +287,6 @@ export const Questions = () => {
         difficultyLevel: "MEDIUM",
         isActive: true,
       });
-      
-      // Clear image states
       setQuestionImageFile(null);
       setQuestionImagePreview("");
       setExplanationImageFile(null);
@@ -307,87 +321,60 @@ export const Questions = () => {
       return;
     }
 
-    if (
-      !formData.option1 ||
-      !formData.option2 ||
-      !formData.option3 ||
-      !formData.option4
-    ) {
+    if (!formData.option1 || !formData.option2 || !formData.option3 || !formData.option4) {
       toast.error("All 4 options are required");
       return;
     }
 
-    // Validate image file sizes again before submit
-    if (questionImageFile) {
-      const maxSize = 2 * 1024 * 1024; // 2MB
-      if (questionImageFile.size > maxSize) {
-        toast.error("Question image size must be less than 2MB. Please choose a smaller image.");
-        return;
-      }
+    if (questionImageFile && questionImageFile.size > 2 * 1024 * 1024) {
+      toast.error("Question image size must be less than 2MB.");
+      return;
     }
 
-    if (explanationImageFile) {
-      const maxSize = 2 * 1024 * 1024; // 2MB
-      if (explanationImageFile.size > maxSize) {
-        toast.error("Explanation image size must be less than 2MB. Please choose a smaller image.");
-        return;
-      }
+    if (explanationImageFile && explanationImageFile.size > 2 * 1024 * 1024) {
+      toast.error("Explanation image size must be less than 2MB.");
+      return;
     }
 
     try {
-      // Create FormData to send all data including images
       const submitFormData = new FormData();
-      
-      // Append text fields
-      submitFormData.append('topicId', formData.topicId);
-      submitFormData.append('questionText', formData.questionText);
-      submitFormData.append('option1', formData.option1);
-      submitFormData.append('option2', formData.option2);
-      submitFormData.append('option3', formData.option3);
-      submitFormData.append('option4', formData.option4);
-      submitFormData.append('correctOption', String(formData.correctOption));
-      submitFormData.append('difficultyLevel', formData.difficultyLevel);
-      submitFormData.append('explanation', formData.explanation);
-      submitFormData.append('isActive', String(formData.isActive));
+      submitFormData.append("topicId", formData.topicId);
+      submitFormData.append("questionText", formData.questionText);
+      submitFormData.append("option1", formData.option1);
+      submitFormData.append("option2", formData.option2);
+      submitFormData.append("option3", formData.option3);
+      submitFormData.append("option4", formData.option4);
+      submitFormData.append("correctOption", String(formData.correctOption));
+      submitFormData.append("difficultyLevel", formData.difficultyLevel);
+      submitFormData.append("explanation", formData.explanation);
+      submitFormData.append("isActive", String(formData.isActive));
 
-      // Handle question image
       if (questionImageFile) {
-        // New image is being uploaded
-        submitFormData.append('questionImage', questionImageFile);
+        submitFormData.append("questionImage", questionImageFile);
       } else if (editingQuestion && removeQuestionImage) {
-        // User wants to delete existing image
-        submitFormData.append('removeImageQuestion', 'true');
+        submitFormData.append("removeImageQuestion", "true");
       }
-      // If neither condition is true, keep existing image (no action needed)
 
-      // Handle explanation image
       if (explanationImageFile) {
-        // New image is being uploaded
-        submitFormData.append('explanationImage', explanationImageFile);
+        submitFormData.append("explanationImage", explanationImageFile);
       } else if (editingQuestion && removeExplanationImage) {
-        // User wants to delete existing image
-        submitFormData.append('removeImageExplanation', 'true');
+        submitFormData.append("removeImageExplanation", "true");
       }
-      // If neither condition is true, keep existing image (no action needed)
 
       if (editingQuestion) {
-        await updateMutation.mutateAsync({
-          id: editingQuestion.id,
-          data: submitFormData,
-        });
+        await updateMutation.mutateAsync({ id: editingQuestion.id, data: submitFormData });
       } else {
         await createMutation.mutateAsync(submitFormData);
       }
       handleCloseModal();
     } catch (error: any) {
-      console.error('Question submission error:', error);
+      console.error("Question submission error:", error);
       toast.error(error.message || "Failed to save question. Please try again.");
     }
   };
 
   const handleBulkUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!csvFile || !bulkTopicId) {
       toast.error("Topic and CSV file required");
       return;
@@ -407,48 +394,28 @@ export const Questions = () => {
       setBulkSubjectId("");
       setBulkTopicId("");
     } catch (error) {
-      // Error already handled by hook
+      // Error handled by hook
     }
-  };
-
-  const downloadSampleCSV = () => {
-    const csv = `Serial Number,Question,Option A,Option B,Option C,Option D,Correct Answer,Explanation,Difficulty
-1,जीवों की मूलभूत...,कोशिका,ऊतक,अंग,अंगतंत्र,a,कोशिका जीवों की मूल इकाई है,MEDIUM`;
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "questions_sample.csv";
-    link.click();
-
-    URL.revokeObjectURL(url);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this question? All associated images will also be deleted.")) {
       return;
     }
-
     try {
       await deleteMutation.mutateAsync(id);
     } catch (error) {
-      // Error already handled by hook
+      // Error handled by hook
     }
   };
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
       const toggleFormData = new FormData();
-      toggleFormData.append('isActive', String(!currentStatus));
-      
-      await updateMutation.mutateAsync({
-        id,
-        data: toggleFormData,
-      });
+      toggleFormData.append("isActive", String(!currentStatus));
+      await updateMutation.mutateAsync({ id, data: toggleFormData });
     } catch (error) {
-      // Error already handled by hook
+      // Error handled by hook
     }
   };
 
@@ -467,10 +434,7 @@ export const Questions = () => {
           {item.questionImageUrl && (
             <ImageIcon className="w-4 h-4 text-primary flex-shrink-0 mt-1" />
           )}
-          <span
-            className="line-clamp-2 max-w-md text-sm"
-            title={item.questionText}
-          >
+          <span className="line-clamp-2 max-w-md text-sm" title={item.questionText}>
             {item.questionText}
           </span>
         </div>
@@ -491,9 +455,7 @@ export const Questions = () => {
       render: (item: any) => (
         <Badge
           variant={
-            difficultyVariant[
-              item.difficultyLevel as keyof typeof difficultyVariant
-            ] || "default"
+            difficultyVariant[item.difficultyLevel as keyof typeof difficultyVariant] || "default"
           }
         >
           {item.difficultyLevel}
@@ -542,24 +504,19 @@ export const Questions = () => {
       title="Manage Questions"
       breadcrumbs={[{ label: "Questions" }]}
     >
+      {/* Stats */}
       {!isStatsError && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-card border border-border p-4 rounded-lg">
-            <p className="text-xs text-muted-foreground uppercase">
-              Total Questions
-            </p>
+            <p className="text-xs text-muted-foreground uppercase">Total Questions</p>
             <p className="text-2xl font-bold mt-1">{stats.total || 0}</p>
           </div>
           <div className="bg-card border border-border p-4 rounded-lg">
             <p className="text-xs text-muted-foreground uppercase">Active</p>
-            <p className="text-2xl font-bold mt-1 text-success">
-              {stats.active || 0}
-            </p>
+            <p className="text-2xl font-bold mt-1 text-success">{stats.active || 0}</p>
           </div>
           <div className="bg-card border border-border p-4 rounded-lg">
-            <p className="text-xs text-muted-foreground uppercase">
-              Easy / Med / Hard
-            </p>
+            <p className="text-xs text-muted-foreground uppercase">Easy / Med / Hard</p>
             <p className="text-sm font-medium mt-2">
               {stats.byDifficulty?.EASY || 0} /{" "}
               {stats.byDifficulty?.MEDIUM || 0} /{" "}
@@ -569,6 +526,7 @@ export const Questions = () => {
         </div>
       )}
 
+      {/* Filters */}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -598,9 +556,7 @@ export const Questions = () => {
               >
                 <option value="">All Subjects</option>
                 {subjects.map((sub: any) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.name}
-                  </option>
+                  <option key={sub.id} value={sub.id}>{sub.name}</option>
                 ))}
               </select>
             )}
@@ -617,9 +573,7 @@ export const Questions = () => {
               >
                 <option value="">All Topics</option>
                 {topics.map((topic: any) => (
-                  <option key={topic.id} value={topic.id}>
-                    {topic.name}
-                  </option>
+                  <option key={topic.id} value={topic.id}>{topic.name}</option>
                 ))}
               </select>
             )}
@@ -657,6 +611,7 @@ export const Questions = () => {
         </div>
       </div>
 
+      {/* Table */}
       {isQuestionsLoading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -668,10 +623,7 @@ export const Questions = () => {
           <p className="text-sm text-muted-foreground mb-4">
             There was a problem loading the questions. Please try again.
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn-outline"
-          >
+          <button onClick={() => window.location.reload()} className="btn-outline">
             Refresh Page
           </button>
         </div>
@@ -692,6 +644,7 @@ export const Questions = () => {
         />
       )}
 
+      {/* Add / Edit Question Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -707,20 +660,14 @@ export const Questions = () => {
               <select
                 value={formData.subjectId}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    subjectId: e.target.value,
-                    topicId: "",
-                  })
+                  setFormData({ ...formData, subjectId: e.target.value, topicId: "" })
                 }
                 className="input-field"
                 disabled={isSubmitting}
               >
                 <option value="">Select Subject</option>
                 {subjects.map((sub: any) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.name}
-                  </option>
+                  <option key={sub.id} value={sub.id}>{sub.name}</option>
                 ))}
               </select>
             </div>
@@ -730,9 +677,7 @@ export const Questions = () => {
               </label>
               <select
                 value={formData.topicId}
-                onChange={(e) =>
-                  setFormData({ ...formData, topicId: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, topicId: e.target.value })}
                 className="input-field"
                 disabled={!formData.subjectId || isSubmitting}
               >
@@ -740,9 +685,7 @@ export const Questions = () => {
                 {topics
                   .filter((t: any) => t.subjectId === formData.subjectId)
                   .map((topic: any) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </option>
+                    <option key={topic.id} value={topic.id}>{topic.name}</option>
                   ))}
               </select>
             </div>
@@ -754,21 +697,18 @@ export const Questions = () => {
             </label>
             <textarea
               value={formData.questionText}
-              onChange={(e) =>
-                setFormData({ ...formData, questionText: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, questionText: e.target.value })}
               className="input-field min-h-[80px] resize-none"
               placeholder="Enter the question"
               disabled={isSubmitting}
             />
           </div>
 
-          {/* Question Image Upload */}
+          {/* Question Image */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Question Image (optional)
             </label>
-            
             {questionImagePreview ? (
               <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
                 <img
@@ -778,7 +718,7 @@ export const Questions = () => {
                 />
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage('question')}
+                  onClick={() => handleRemoveImage("question")}
                   className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
                   disabled={isSubmitting}
                 >
@@ -801,34 +741,25 @@ export const Questions = () => {
                 className="w-full h-48 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
               >
                 <Upload className="w-12 h-12 text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground mb-1">
-                  Click to upload question image
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  PNG, JPG, GIF (Max: 2MB)
-                </p>
+                <p className="text-sm text-muted-foreground mb-1">Click to upload question image</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG, GIF (Max: 2MB)</p>
               </div>
             )}
-
             <input
               ref={questionImageInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => handleImageSelect(e, 'question')}
+              onChange={(e) => handleImageSelect(e, "question")}
               className="hidden"
               disabled={isSubmitting}
             />
-            
-            <p className="text-xs text-muted-foreground mt-2">
-              ⚠️ Image must be less than 2MB in size
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">⚠️ Image must be less than 2MB</p>
             {editingQuestion && removeQuestionImage && (
-              <p className="text-xs text-destructive mt-1">
-                ⚠️ Image will be deleted on save
-              </p>
+              <p className="text-xs text-destructive mt-1">⚠️ Image will be deleted on save</p>
             )}
           </div>
 
+          {/* Options */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((num) => (
               <div key={num} className="relative">
@@ -838,16 +769,9 @@ export const Questions = () => {
                 <div className="relative">
                   <input
                     type="text"
-                    value={
-                      formData[
-                        `option${num}` as keyof typeof formData
-                      ] as string
-                    }
+                    value={formData[`option${num}` as keyof typeof formData] as string}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        [`option${num}`]: e.target.value,
-                      })
+                      setFormData({ ...formData, [`option${num}`]: e.target.value })
                     }
                     className="input-field pr-10"
                     placeholder={`Option ${num}`}
@@ -855,9 +779,7 @@ export const Questions = () => {
                   />
                   <button
                     type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, correctOption: num })
-                    }
+                    onClick={() => setFormData({ ...formData, correctOption: num })}
                     className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${
                       formData.correctOption === num
                         ? "text-success"
@@ -873,26 +795,21 @@ export const Questions = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Explanation
-            </label>
+            <label className="block text-sm font-medium mb-1">Explanation</label>
             <textarea
               value={formData.explanation}
-              onChange={(e) =>
-                setFormData({ ...formData, explanation: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
               className="input-field min-h-[80px] resize-none"
               placeholder="Enter explanation for the correct answer"
               disabled={isSubmitting}
             />
           </div>
 
-          {/* Explanation Image Upload */}
+          {/* Explanation Image */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Explanation Image (optional)
             </label>
-            
             {explanationImagePreview ? (
               <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
                 <img
@@ -902,7 +819,7 @@ export const Questions = () => {
                 />
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage('explanation')}
+                  onClick={() => handleRemoveImage("explanation")}
                   className="absolute top-2 right-2 p-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-colors"
                   disabled={isSubmitting}
                 >
@@ -925,48 +842,33 @@ export const Questions = () => {
                 className="w-full h-48 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
               >
                 <Upload className="w-12 h-12 text-muted-foreground/50 mb-2" />
-                <p className="text-sm text-muted-foreground mb-1">
-                  Click to upload explanation image
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  PNG, JPG, GIF (Max: 2MB)
-                </p>
+                <p className="text-sm text-muted-foreground mb-1">Click to upload explanation image</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG, GIF (Max: 2MB)</p>
               </div>
             )}
-
             <input
               ref={explanationImageInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => handleImageSelect(e, 'explanation')}
+              onChange={(e) => handleImageSelect(e, "explanation")}
               className="hidden"
               disabled={isSubmitting}
             />
-            
-            <p className="text-xs text-muted-foreground mt-2">
-              ⚠️ Image must be less than 2MB in size
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">⚠️ Image must be less than 2MB</p>
             {editingQuestion && removeExplanationImage && (
-              <p className="text-xs text-destructive mt-1">
-                ⚠️ Image will be deleted on save
-              </p>
+              <p className="text-xs text-destructive mt-1">⚠️ Image will be deleted on save</p>
             )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Difficulty Level
-              </label>
+              <label className="block text-sm font-medium mb-1">Difficulty Level</label>
               <select
                 value={formData.difficultyLevel}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    difficultyLevel: e.target.value as
-                      | "EASY"
-                      | "MEDIUM"
-                      | "HARD",
+                    difficultyLevel: e.target.value as "EASY" | "MEDIUM" | "HARD",
                   })
                 }
                 className="input-field"
@@ -981,9 +883,7 @@ export const Questions = () => {
               <label className="text-sm font-medium">Active Status</label>
               <Toggle
                 checked={formData.isActive}
-                onChange={(checked) =>
-                  setFormData({ ...formData, isActive: checked })
-                }
+                onChange={(checked) => setFormData({ ...formData, isActive: checked })}
               />
             </div>
           </div>
@@ -1009,6 +909,7 @@ export const Questions = () => {
         </form>
       </Modal>
 
+      {/* Bulk Upload Modal */}
       <Modal
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
@@ -1032,9 +933,7 @@ export const Questions = () => {
               >
                 <option value="">Select Subject</option>
                 {subjects.map((sub: any) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.name}
-                  </option>
+                  <option key={sub.id} value={sub.id}>{sub.name}</option>
                 ))}
               </select>
             </div>
@@ -1054,9 +953,7 @@ export const Questions = () => {
                 {topics
                   .filter((t: any) => t.subjectId === bulkSubjectId)
                   .map((topic: any) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </option>
+                    <option key={topic.id} value={topic.id}>{topic.name}</option>
                   ))}
               </select>
             </div>
@@ -1066,32 +963,32 @@ export const Questions = () => {
             <h4 className="font-medium mb-2">CSV Rules</h4>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
               <li>No subjectId or topicId needed in CSV</li>
-              <li>
-                correctOption can be <b>1–4</b> or <b>A–D</b>
-              </li>
+              <li>correctOption can be <b>1–4</b> or <b>A–D</b></li>
               <li>Maximum 1000 questions per upload</li>
             </ul>
-
             <button
               type="button"
-              onClick={downloadSampleCSV}
+              onClick={() => setShowCsvFormat(true)}
               className="btn-outline mt-3 flex items-center gap-2 text-sm"
             >
               <Download className="w-4 h-4" />
-              Download Sample CSV
+              View CSV Format
             </button>
           </div>
 
           <div className="border-2 border-dashed border-border rounded-lg p-8 text-center relative">
             <input
               type="file"
-              accept=".csv"
+              accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
               className="absolute inset-0 opacity-0 cursor-pointer"
             />
             <Upload className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
             <p className="font-medium">
-              {csvFile ? csvFile.name : "Click or drop CSV file"}
+              {csvFile ? csvFile.name : "Click or drop CSV / Excel file"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Supported: .csv, .xls, .xlsx
             </p>
           </div>
 
@@ -1106,9 +1003,7 @@ export const Questions = () => {
             <button
               type="submit"
               className="flex-1 btn-primary flex items-center justify-center gap-2"
-              disabled={
-                !csvFile || !bulkTopicId || bulkUploadMutation.isPending
-              }
+              disabled={!csvFile || !bulkTopicId || bulkUploadMutation.isPending}
             >
               {bulkUploadMutation.isPending && (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1117,6 +1012,110 @@ export const Questions = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* CSV Format Preview Modal */}
+      <Modal
+        isOpen={showCsvFormat}
+        onClose={() => setShowCsvFormat(false)}
+        title="CSV Format Reference"
+        size="xl"
+      >
+        <div className="space-y-4">
+          {/* Column descriptions */}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <h4 className="font-semibold text-sm">Column Descriptions</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              {[
+                { col: "Question", desc: "The question text", required: true },
+                { col: "Option A", desc: "First answer choice", required: true },
+                { col: "Option B", desc: "Second answer choice", required: true },
+                { col: "Option C", desc: "Third answer choice", required: true },
+                { col: "Option D", desc: "Fourth answer choice", required: true },
+                { col: "Correct Answer", desc: "Use A/B/C/D or 1/2/3/4", required: true },
+                { col: "Explanation", desc: "Explanation for the answer", required: false },
+                { col: "Difficulty", desc: "EASY, MEDIUM, or HARD", required: false },
+              ].map((item) => (
+                <div
+                  key={item.col}
+                  className="flex items-start gap-2 bg-background rounded p-2 border border-border"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-semibold text-foreground">
+                        {item.col}
+                      </span>
+                      {item.required ? (
+                        <span className="text-[10px] text-destructive font-medium">required</span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">optional</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sample table */}
+          <div>
+            <h4 className="font-semibold text-sm mb-2">Sample Data</h4>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted">
+                    {csvHeaders.map((h) => (
+                      <th
+                        key={h}
+                        className="px-3 py-2 text-left font-semibold text-foreground whitespace-nowrap border-b border-border"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {csvSampleData.map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/30"}>
+                      {csvHeaders.map((h) => (
+                        <td
+                          key={h}
+                          className="px-3 py-2 text-muted-foreground whitespace-nowrap border-b border-border"
+                        >
+                          {row[h as keyof typeof row]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Warnings */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+              ⚠️ Important Notes
+            </p>
+            <ul className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-2 space-y-1 list-disc list-inside">
+              <li>Do NOT include subjectId or topicId columns — select them from dropdowns above</li>
+              <li>First row must be the header row exactly as shown above</li>
+              <li>Maximum 1000 questions per upload</li>
+              <li>Accepted formats: CSV, XLS, XLSX</li>
+              <li>Difficulty defaults to MEDIUM if left blank</li>
+            </ul>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowCsvFormat(false)}
+              className="btn-primary"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
       </Modal>
     </DashboardLayout>
   );
