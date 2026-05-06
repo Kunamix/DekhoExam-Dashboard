@@ -38,7 +38,6 @@ export interface TestFilters {
  Queries
 ---------------------------------- */
 
-// ✅ CORRECTED: Proper data extraction
 export const useTests = (filters?: TestFilters) => {
   return useQuery({
     queryKey: ["tests", filters],
@@ -51,46 +50,41 @@ export const useTests = (filters?: TestFilters) => {
               ? String(filters.isActive)
               : undefined,
           isPaid:
-            filters?.isPaid !== undefined
-              ? String(filters.isPaid)
-              : undefined,
+            filters?.isPaid !== undefined ? String(filters.isPaid) : undefined,
         },
       });
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
     placeholderData: (previousData) => previousData,
   });
 };
 
-// ✅ CORRECTED: Proper data extraction
 export const useCategories = () => {
   return useQuery({
     queryKey: ["categories-list"],
     queryFn: async () => {
       const { data } = await api.get("/categories");
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
   });
 };
 
-// ✅ CORRECTED: Proper data extraction
 export const useSubjects = () => {
   return useQuery({
     queryKey: ["subjects-list"],
     queryFn: async () => {
       const { data } = await api.get("/subjects");
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
   });
 };
 
-// ✅ CORRECTED: Proper data extraction
 export const useTestById = (id?: string) => {
   return useQuery({
     queryKey: ["test", id],
     queryFn: async () => {
       const { data } = await api.get(`/tests/${id}`);
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
     enabled: !!id,
   });
@@ -100,28 +94,24 @@ export const useTestById = (id?: string) => {
  Mutations
 ---------------------------------- */
 
-// ✅ CORRECTED: Proper data extraction and error handling
 export const useCreateTest = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: Partial<Test>) => {
       const { data } = await api.post("/tests", payload);
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
     onSuccess: (response) => {
-      // Component can handle custom toast messages
       queryClient.invalidateQueries({ queryKey: ["tests"] });
       return response;
     },
     onError: (error: AxiosError<{ message: string }>) => {
-      // Component can handle error display
       throw error;
     },
   });
 };
 
-// ✅ CORRECTED: Proper data extraction
 export const useUpdateTest = () => {
   const queryClient = useQueryClient();
 
@@ -134,7 +124,7 @@ export const useUpdateTest = () => {
       data: Partial<Test>;
     }) => {
       const { data } = await api.put(`/tests/${id}`, payload);
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
     onSuccess: () => {
       toast.success("Test updated successfully");
@@ -146,17 +136,16 @@ export const useUpdateTest = () => {
   });
 };
 
-// ✅ CORRECTED: Proper data extraction
 export const useDeleteTest = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await api.delete(`/tests/${id}`);
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
     onSuccess: (_, id) => {
-      toast.success("Test removed successfully");
+      toast.success("Test deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["tests"] });
       queryClient.invalidateQueries({ queryKey: ["test", id] });
     },
@@ -166,32 +155,32 @@ export const useDeleteTest = () => {
   });
 };
 
-// ✅ CORRECTED: Proper data extraction
 export const useToggleTestStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await api.patch(`/tests/${id}/toggle-status`);
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
     onSuccess: () => {
       toast.success("Test status updated");
       queryClient.invalidateQueries({ queryKey: ["tests"] });
     },
     onError: (error: AxiosError<{ message: string }>) => {
-      toast.error(error.response?.data?.message || "Failed to update test status");
+      toast.error(
+        error.response?.data?.message || "Failed to update test status",
+      );
     },
   });
 };
 
-// ✅ CORRECTED: Proper data extraction
 export const useRecentTests = () => {
   return useQuery({
     queryKey: ["dashboard", "recent-tests"],
     queryFn: async () => {
       const { data } = await mobileApi.get("/dashboard/recent-tests");
-      return data; // ✅ Handle both nested and flat responses
+      return data;
     },
     retry: false,
   });
@@ -202,14 +191,13 @@ export const useTestRankings = (testId?: string) => {
     queryKey: ["dashboard", "test-rankings", testId],
     queryFn: async () => {
       const res = await mobileApi.get(`/profile/tests/${testId}/rankings`);
-      return res.data?.data; // ✅ return inner data
+      return res.data?.data;
     },
     enabled: !!testId,
     retry: false,
   });
 };
 
-// useGlobalRankings
 export const useGlobalRankings = () => {
   return useQuery({
     queryKey: ["dashboard", "global-rankings"],

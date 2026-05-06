@@ -124,7 +124,7 @@ export const useUpdateQuestion = () => {
       id: string;
       data: Partial<Question>;
     }) => {
-      const { data } = await api.put(`/questions/${id}`, updateData);
+      const { data } = await api.post(`/questions/${id}/update`, updateData);
       return data; // ✅ Handle both nested and flat responses
     },
     onSuccess: () => {

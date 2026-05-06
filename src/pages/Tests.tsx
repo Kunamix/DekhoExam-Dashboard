@@ -27,25 +27,17 @@ import { useCategories } from "@/hooks/useCategory";
 import { useSubjects } from "@/hooks/useSubject";
 
 export const Tests = () => {
-  const {
-    data: testsData,
-    isLoading: isTestsLoading,
-    isError: isTestsError,
-  } = useTests();
-  const { data: categoriesData, isError: isCategoriesError } = useCategories();
-  const { data: subjectsData } = useSubjects();
-
-  const createMutation = useCreateTest();
-  const updateMutation = useUpdateTest();
-  const deleteMutation = useDeleteTest();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTest, setEditingTest] = useState<Test | null>(null);
-  const [errorMessage, setErrorMessage] = useState("");
+  // ✅ Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTest, setEditingTest] = useState<Test | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
     categoryId: "",
@@ -58,19 +50,44 @@ export const Tests = () => {
     testNumber: 1,
     isActive: true,
   });
+
+  // ✅ Pass page and limit to useTests
+  const {
+    data: testsData,
+    isLoading: isTestsLoading,
+    isError: isTestsError,
+  } = useTests({
+    page,
+    limit,
+    categoryId: selectedCategory || undefined,
+  });
+
+  const { data: categoriesData, isError: isCategoriesError } = useCategories();
+  const { data: subjectsData } = useSubjects();
+
+  const createMutation = useCreateTest();
+  const updateMutation = useUpdateTest();
+  const deleteMutation = useDeleteTest();
+
   const {
     data: rankings,
     isLoading: isRankLoading,
     isError: isRankError,
   } = useTestRankings(selectedTestId || undefined);
 
-  console.log("Rankings Data:", rankings); // Debugging line
-
   const tests = (testsData?.data?.tests as Test[]) || [];
   const categories = categoriesData?.data?.categories || [];
 
+  // ✅ Pagination from API response
+  const pagination = testsData?.data?.pagination || {
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  };
+
+  // ✅ Only filter by type on frontend (category is filtered server-side)
   const filteredTests = tests.filter((test) => {
-    if (selectedCategory && test.categoryId !== selectedCategory) return false;
     const testType = test.isPaid ? "Paid" : "Free";
     if (selectedType && testType !== selectedType) return false;
     return true;
@@ -81,9 +98,8 @@ export const Tests = () => {
   const getCategoryName = (id: string) =>
     categories?.find((c: any) => c.id === id)?.name || "Unknown";
 
-  const getSelectedCategory = () => {
-    return categories?.find((cat: any) => cat.id === formData.categoryId);
-  };
+  const getSelectedCategory = () =>
+    categories?.find((cat: any) => cat.id === formData.categoryId);
 
   const calculateTotalQuestions = () => {
     const selectedCat = getSelectedCategory();
@@ -112,25 +128,13 @@ export const Tests = () => {
         .map((line) => line.trim());
       return { title, details };
     }
-
     if (errorMsg.includes("already exists")) {
-      return {
-        title: "Duplicate Test Number",
-        details: [errorMsg],
-      };
+      return { title: "Duplicate Test Number", details: [errorMsg] };
     }
-
     if (errorMsg.includes("required")) {
-      return {
-        title: "Missing Required Fields",
-        details: [errorMsg],
-      };
+      return { title: "Missing Required Fields", details: [errorMsg] };
     }
-
-    return {
-      title: "Error Creating Test",
-      details: [errorMsg],
-    };
+    return { title: "Error Creating Test", details: [errorMsg] };
   };
 
   const handleOpenModal = (test?: Test) => {
@@ -160,7 +164,7 @@ export const Tests = () => {
         positiveMarks: 1,
         negativeMarks: 0.25,
         isPaid: true,
-        testNumber: tests.length + 1,
+        testNumber: pagination.total + 1,
         isActive: true,
       });
     }
@@ -170,22 +174,14 @@ export const Tests = () => {
   const handleCategoryChange = (categoryId: string) => {
     setErrorMessage("");
     const selectedCat = categories?.find((cat: any) => cat.id === categoryId);
-
     if (selectedCat?.categorySubjects) {
       const total = selectedCat.categorySubjects.reduce(
         (sum: number, item: any) => sum + (item.questionsPerTest ?? 0),
         0,
       );
-      setFormData((prev) => ({
-        ...prev,
-        categoryId,
-        totalQuestions: total,
-      }));
+      setFormData((prev) => ({ ...prev, categoryId, totalQuestions: total }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        categoryId,
-      }));
+      setFormData((prev) => ({ ...prev, categoryId }));
     }
   };
 
@@ -198,7 +194,6 @@ export const Tests = () => {
       return;
     }
 
-    // Validate negative marks cannot be greater than positive marks
     if (formData.negativeMarks > formData.positiveMarks) {
       toast.error("Negative marks cannot be greater than positive marks");
       return;
@@ -223,13 +218,17 @@ export const Tests = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this test?")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this test? This will also delete all attempts and related data.",
+      )
+    ) {
       return;
     }
     try {
       await deleteMutation.mutateAsync(id);
     } catch (error) {
-      // Error already handled by hook
+      // Error handled by hook
     }
   };
 
@@ -240,11 +239,18 @@ export const Tests = () => {
         data: { isActive: !currentStatus },
       });
     } catch (error) {
-      // Error already handled by hook
+      // Error handled by hook
     }
   };
 
   const columns = [
+    {
+      key: "testNumber",
+      label: "#",
+      render: (item: Test) => (
+        <span className="text-muted-foreground">#{item.testNumber}</span>
+      ),
+    },
     { key: "name", label: "Test Name", sortable: true },
     {
       key: "categoryId",
@@ -305,7 +311,6 @@ export const Tests = () => {
       label: "Actions",
       render: (item: Test) => (
         <div className="flex gap-2">
-          {/* View Rankings */}
           <button
             onClick={() => {
               setSelectedTestId(item.id);
@@ -316,8 +321,6 @@ export const Tests = () => {
           >
             <Award className="w-4 h-4 text-primary" />
           </button>
-
-          {/* Edit */}
           <button
             onClick={() => handleOpenModal(item)}
             className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -325,15 +328,13 @@ export const Tests = () => {
           >
             <Edit className="w-4 h-4" />
           </button>
-
-          {/* Delete */}
           <button
             onClick={() => handleDelete(item.id)}
             disabled={deleteMutation.isPending}
             className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors disabled:opacity-50"
             title="Delete test"
           >
-            {deleteMutation.isPending && editingTest?.id === item.id ? (
+            {deleteMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Trash2 className="w-4 h-4" />
@@ -356,7 +357,10 @@ export const Tests = () => {
             ) : (
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setPage(1); // ✅ Reset page on filter change
+                }}
                 className="input-field w-48"
               >
                 <option value="">All Categories</option>
@@ -369,7 +373,10 @@ export const Tests = () => {
             )}
             <select
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
+              onChange={(e) => {
+                setSelectedType(e.target.value);
+                setPage(1); // ✅ Reset page on filter change
+              }}
               className="input-field w-32"
             >
               <option value="">All Types</option>
@@ -410,10 +417,24 @@ export const Tests = () => {
             </button>
           </div>
         ) : (
-          <DataTable columns={columns} data={filteredTests} />
+          // ✅ Pagination now working
+          <DataTable
+            columns={columns}
+            data={filteredTests}
+            searchable={false}
+            emptyMessage="No tests found"
+            pagination={pagination}
+            onPageChange={(newPage) => setPage(newPage)}
+            onLimitChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+            itemsPerPageOptions={[10, 25, 50]}
+          />
         )}
       </div>
 
+      {/* Create / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => {
@@ -535,7 +556,6 @@ export const Tests = () => {
                 disabled={isSubmitting}
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">
                 Total Questions
@@ -543,19 +563,12 @@ export const Tests = () => {
               <input
                 type="number"
                 value={formData.totalQuestions}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    totalQuestions: parseInt(e.target.value) || 0,
-                  })
-                }
                 className="input-field"
                 min={1}
                 disabled={isSubmitting}
                 readOnly
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">
                 Positive Marks
@@ -576,7 +589,6 @@ export const Tests = () => {
                 disabled={isSubmitting}
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">
                 Negative Marks
@@ -609,25 +621,23 @@ export const Tests = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Test Number
-              </label>
-              <input
-                type="number"
-                value={formData.testNumber}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    testNumber: parseInt(e.target.value) || 1,
-                  })
-                }
-                className="input-field"
-                min={1}
-                disabled={isSubmitting}
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Test Number
+            </label>
+            <input
+              type="number"
+              value={formData.testNumber}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  testNumber: parseInt(e.target.value) || 1,
+                })
+              }
+              className="input-field"
+              min={1}
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -659,7 +669,6 @@ export const Tests = () => {
                 </span>
               </div>
             </div>
-
             <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
               <label className="text-sm font-medium">Active Status</label>
               <Toggle
@@ -694,6 +703,7 @@ export const Tests = () => {
           </div>
         </form>
       </Modal>
+
       {/* Rankings Modal */}
       <Modal
         isOpen={isRankingModalOpen}
@@ -714,7 +724,6 @@ export const Tests = () => {
           </div>
         ) : rankings ? (
           <div className="space-y-6">
-            {/* Top Rankers */}
             <div>
               <div className="flex justify-between mb-3">
                 <h4 className="font-semibold">Top Rankers</h4>
@@ -722,7 +731,6 @@ export const Tests = () => {
                   Total Participants: {rankings.totalParticipants}
                 </span>
               </div>
-
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {rankings.topRankers?.length ? (
                   rankings.topRankers.map((user: any) => (
@@ -734,7 +742,6 @@ export const Tests = () => {
                         <div className="font-bold text-primary w-8">
                           #{user.rank}
                         </div>
-
                         <div>
                           <div className="font-medium">{user.userName}</div>
                           <div className="text-xs text-muted-foreground">
@@ -742,7 +749,6 @@ export const Tests = () => {
                           </div>
                         </div>
                       </div>
-
                       <div className="text-sm font-medium">
                         {user.totalMarks} marks
                       </div>
