@@ -32,11 +32,17 @@ import {
 } from "@/hooks/useCategory";
 
 export const Categories = () => {
+  // ─── Pagination & filter state (mirrors Questions page) ───────────────────
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+
+  // ─── Data fetching ────────────────────────────────────────────────────────
   const {
     data: categoriesData,
     isLoading: isCategoriesLoading,
     isError: isCategoriesError,
-  } = useCategories();
+  } = useCategories({ page, limit, search: search || undefined });
 
   const { data: subjectsData, isError: isSubjectsError } = useSubjects();
 
@@ -45,7 +51,16 @@ export const Categories = () => {
   const deleteMutation = useDeleteCategory();
   const assignSubjectsMutation = useAssignSubjectsToCategory();
 
-  const [search, setSearch] = useState("");
+  // ─── Derived data (mirrors Questions pattern) ─────────────────────────────
+  const categories: Category[] = categoriesData?.data?.categories || [];
+  const pagination = categoriesData?.data?.pagination || {
+    total: 0,
+    totalPages: 1,
+    page: 1,
+  };
+  const subjects: Subject[] = subjectsData?.data?.subjects || [];
+
+  // ─── Modal state ──────────────────────────────────────────────────────────
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
@@ -64,75 +79,51 @@ export const Categories = () => {
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  const [removeImage, setRemoveImage] = useState(false); // Track if user wants to remove image
+  const [removeImage, setRemoveImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [subjectAssignments, setSubjectAssignments] = useState<
     SubjectAssignment[]
   >([]);
 
-  const categories: Category[] = categoriesData?.data?.categories || [];
-  const subjects: Subject[] = subjectsData?.data?.subjects || [];
-
-  const filteredCategories = categories.filter(
-    (cat) =>
-      cat.name.toLowerCase().includes(search.toLowerCase()) ||
-      cat.description?.toLowerCase().includes(search.toLowerCase()),
-  );
-
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const isAssigning = assignSubjectsMutation.isPending;
 
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
-    // Check file type
     if (!file.type.startsWith("image/")) {
       toast.error("Please select a valid image file");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
-    // Check file size (2MB = 2 * 1024 * 1024 bytes)
     const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error(
         "Image size must be less than 2MB. Please choose a smaller image.",
       );
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
     setImageFile(file);
-    setRemoveImage(false); // If selecting new image, don't remove
+    setRemoveImage(false);
 
-    // Create preview
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
+    reader.onloadend = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
   };
 
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview("");
-
-    // If editing and had an existing image, mark for removal
-    if (editingCategory && editingCategory.imageUrl) {
-      setRemoveImage(true);
-    }
-
+    if (editingCategory && editingCategory.imageUrl) setRemoveImage(true);
     setFormData({ ...formData, imageUrl: "" });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleOpenModal = (category?: Category) => {
@@ -154,7 +145,7 @@ export const Categories = () => {
         name: "",
         description: "",
         imageUrl: "",
-        displayOrder: categories.length + 1,
+        displayOrder: pagination.total + 1,
         isActive: true,
       });
       setImagePreview("");
@@ -170,21 +161,17 @@ export const Categories = () => {
     setImageFile(null);
     setImagePreview("");
     setRemoveImage(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleOpenAssignModal = (category: Category) => {
     setAssigningCategory(category);
-
     const existingAssignments =
       category.categorySubjects?.map((cs) => ({
         subjectId: cs.subjectId,
         questionsPerTest: cs.questionsPerTest,
         displayOrder: cs.displayOrder,
       })) || [];
-
     setSubjectAssignments(existingAssignments);
     setIsAssignModalOpen(true);
   };
@@ -228,36 +215,25 @@ export const Categories = () => {
       return;
     }
 
-    // Validate image file size again before submit
-    if (imageFile) {
-      const maxSize = 2 * 1024 * 1024; // 2MB
-      if (imageFile.size > maxSize) {
-        toast.error(
-          "Image size must be less than 2MB. Please choose a smaller image.",
-        );
-        return;
-      }
+    if (imageFile && imageFile.size > 2 * 1024 * 1024) {
+      toast.error(
+        "Image size must be less than 2MB. Please choose a smaller image.",
+      );
+      return;
     }
 
     try {
-      // Create FormData to send all data including image
       const submitFormData = new FormData();
-
-      // Append text fields
       submitFormData.append("name", formData.name);
       submitFormData.append("description", formData.description);
       submitFormData.append("displayOrder", String(formData.displayOrder));
       submitFormData.append("isActive", String(formData.isActive));
 
-      // Handle image scenarios
       if (imageFile) {
-        // SCENARIO 1: New image file selected
         submitFormData.append("image", imageFile);
       } else if (removeImage) {
-        // SCENARIO 2: User explicitly removed the image
         submitFormData.append("removeImage", "true");
       }
-      // SCENARIO 3: No changes to image (keep existing) - don't append anything
 
       if (editingCategory) {
         await updateMutation.mutateAsync({
@@ -280,24 +256,20 @@ export const Categories = () => {
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!assigningCategory) return;
 
     if (subjectAssignments.length === 0) {
       toast.error("Please add at least one subject");
       return;
     }
-
-    const hasEmptySubject = subjectAssignments.some((s) => !s.subjectId);
-    if (hasEmptySubject) {
+    if (subjectAssignments.some((s) => !s.subjectId)) {
       toast.error("Please select a subject for all entries");
       return;
     }
-
-    const hasDuplicates =
+    if (
       new Set(subjectAssignments.map((s) => s.subjectId)).size !==
-      subjectAssignments.length;
-    if (hasDuplicates) {
+      subjectAssignments.length
+    ) {
       toast.error("Duplicate subjects are not allowed");
       return;
     }
@@ -314,10 +286,7 @@ export const Categories = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) {
-      return;
-    }
-
+    if (!confirm("Are you sure you want to delete this category?")) return;
     try {
       await deleteMutation.mutateAsync(id);
     } catch (error) {
@@ -327,24 +296,31 @@ export const Categories = () => {
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      // Create FormData for the toggle update
       const toggleFormData = new FormData();
       toggleFormData.append("isActive", String(!currentStatus));
-
-      await updateMutation.mutateAsync({
-        id,
-        data: toggleFormData,
-      });
+      await updateMutation.mutateAsync({ id, data: toggleFormData });
     } catch (error) {
       // Error already handled by hook
     }
   };
 
+  // ─── Pagination helpers (mirrors Questions page) ──────────────────────────
+  const handlePageChange = (newPage: number) => setPage(newPage);
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+  };
+
+  const itemsPerPageOptions = [10, 25, 50, 100];
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <DashboardLayout
       title="Manage Categories"
       breadcrumbs={[{ label: "Categories" }]}
     >
+      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 w-full sm:w-64">
           <Search className="w-4 h-4 text-muted-foreground" />
@@ -352,7 +328,10 @@ export const Categories = () => {
             type="text"
             placeholder="Search categories..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1); // reset page on search — same as Questions
+            }}
             className="bg-transparent border-none outline-none text-sm w-full placeholder:text-muted-foreground"
           />
         </div>
@@ -365,6 +344,7 @@ export const Categories = () => {
         </button>
       </div>
 
+      {/* Content */}
       {isCategoriesLoading ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -387,13 +367,13 @@ export const Categories = () => {
         </div>
       ) : (
         <>
+          {/* Category Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCategories.map((category) => (
+            {categories.map((category) => (
               <div
                 key={category.id}
                 className="dashboard-card overflow-hidden hover:shadow-medium transition-shadow group"
               >
-                {/* Category Image */}
                 {category.imageUrl ? (
                   <div className="w-full h-48 overflow-hidden bg-muted">
                     <img
@@ -470,7 +450,8 @@ export const Categories = () => {
             ))}
           </div>
 
-          {filteredCategories.length === 0 && !isCategoriesError && (
+          {/* Empty state */}
+          {categories.length === 0 && (
             <div className="text-center py-16">
               <FolderOpen className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">
@@ -491,21 +472,82 @@ export const Categories = () => {
               )}
             </div>
           )}
+
+          {/* ── Pagination (exact same pattern as Questions / DataTable) ── */}
+          {pagination.totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
+              {/* Left: rows-per-page selector */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Rows per page:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => handleLimitChange(Number(e.target.value))}
+                  className="input-field py-1 px-2 text-sm w-20"
+                >
+                  {itemsPerPageOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Center: page info */}
+              <p className="text-sm text-muted-foreground">
+                Page {pagination.page} of {pagination.totalPages} &nbsp;·&nbsp;{" "}
+                {pagination.total} total
+              </p>
+
+              {/* Right: prev / page numbers / next */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="btn-outline px-3 py-1.5 text-sm disabled:opacity-40"
+                >
+                  Previous
+                </button>
+
+                {Array.from(
+                  { length: pagination.totalPages },
+                  (_, i) => i + 1,
+                ).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => handlePageChange(p)}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                      p === page ? "btn-primary" : "btn-outline"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === pagination.totalPages}
+                  className="btn-outline px-3 py-1.5 text-sm disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
+      {/* ── Add / Edit Category Modal ── */}
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         title={editingCategory ? "Edit Category" : "Add New Category"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Image Upload Section */}
+          {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Category Image
             </label>
-
             {imagePreview && !removeImage ? (
               <div className="relative w-full h-48 rounded-lg overflow-hidden border border-border">
                 <img
@@ -536,7 +578,6 @@ export const Categories = () => {
                 </p>
               </div>
             )}
-
             <input
               ref={fileInputRef}
               type="file"
@@ -545,7 +586,6 @@ export const Categories = () => {
               className="hidden"
               disabled={isSubmitting}
             />
-
             <p className="text-xs text-muted-foreground mt-2">
               ⚠️ Image must be less than 2MB in size
             </p>
@@ -632,6 +672,7 @@ export const Categories = () => {
         </form>
       </Modal>
 
+      {/* ── Assign Subjects Modal ── */}
       <Modal
         isOpen={isAssignModalOpen}
         onClose={handleCloseAssignModal}
@@ -701,7 +742,6 @@ export const Categories = () => {
                             disabled={isAssigning}
                           />
                         </div>
-
                         <div>
                           <label className="block text-xs font-medium mb-1">
                             Display Order
@@ -757,7 +797,6 @@ export const Categories = () => {
             >
               Cancel
             </button>
-
             <button
               type="submit"
               className="flex-1 btn-primary flex items-center justify-center gap-2"
