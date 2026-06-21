@@ -64,7 +64,7 @@ export const useCategories = (filters?: CategoryFilters) => {
   });
 };
 
-export const useSubjects = () => {
+export const useSubjects = (p0: { limit: number; }) => {
   return useQuery({
     queryKey: ["subjects"],
     queryFn: async () => {

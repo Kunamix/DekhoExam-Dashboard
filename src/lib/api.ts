@@ -4,7 +4,7 @@ import axios from 'axios';
    ADMIN API (unchanged)
 ======================= */
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL}/admin`,
+  baseURL: `https://api.dekhoexam.com/api/v1/admin`,
   withCredentials: true,
 });
 
@@ -12,7 +12,7 @@ const api = axios.create({
    MOBILE API (new)
 ======================= */
 export const mobileApi = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL}/mobile`,
+  baseURL: `https://api.dekhoexam.com/api/v1/mobile`,
   withCredentials: true,
 });
 

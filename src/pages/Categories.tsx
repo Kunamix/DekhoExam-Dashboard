@@ -44,7 +44,7 @@ export const Categories = () => {
     isError: isCategoriesError,
   } = useCategories({ page, limit, search: search || undefined });
 
-  const { data: subjectsData, isError: isSubjectsError } = useSubjects();
+  const { data: subjectsData, isError: isSubjectsError } = useSubjects({ limit: 2000 });
 
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();

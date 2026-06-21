@@ -98,10 +98,10 @@ export const Questions = () => {
   const [page, setPage] = useState(1);
   const [showCsvFormat, setShowCsvFormat] = useState(false);
 
-  const { data: subjectsData, isError: isSubjectsError } = useSubjects();
+  const { data: subjectsData, isError: isSubjectsError } = useSubjects({ limit: 10000 });
 
   const { data: topicsData, isError: isTopicsError } =
-    useTopics(selectedSubject);
+    useTopics(selectedSubject ? { subjectId: selectedSubject, limit: 10000 } : { limit: 10000 });
 
   const { data: statsData, isError: isStatsError } = useQuestionStats();
 
@@ -362,9 +362,9 @@ export const Questions = () => {
       }
 
       if (editingQuestion) {
-        await updateMutation.mutateAsync({ id: editingQuestion.id, data: submitFormData });
+        await updateMutation.mutateAsync({ id: editingQuestion.id, data: submitFormData as any });
       } else {
-        await createMutation.mutateAsync(submitFormData);
+        await createMutation.mutateAsync(submitFormData as any);
       }
       handleCloseModal();
     } catch (error: any) {
@@ -413,7 +413,7 @@ export const Questions = () => {
     try {
       const toggleFormData = new FormData();
       toggleFormData.append("isActive", String(!currentStatus));
-      await updateMutation.mutateAsync({ id, data: toggleFormData });
+      await updateMutation.mutateAsync({ id, data: toggleFormData as any });
     } catch (error) {
       // Error handled by hook
     }

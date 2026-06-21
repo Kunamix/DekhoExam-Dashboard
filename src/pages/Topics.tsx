@@ -41,13 +41,13 @@ export const Topics = () => {
   const { 
     data: subjectsData,
     isError: isSubjectsError 
-  } = useSubjects();
+  } = useSubjects({ limit: 10000 });
   
   const { 
     data: topicsData, 
     isLoading: isTopicsLoading,
     isError: isTopicsError 
-  } = useTopics(selectedSubject);
+  } = useTopics(selectedSubject ? { subjectId: selectedSubject, limit: 10000 } : { limit: 10000 });
 
   const createMutation = useCreateTopic();
   const updateMutation = useUpdateTopic();
