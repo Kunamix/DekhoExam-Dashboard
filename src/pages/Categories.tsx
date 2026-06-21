@@ -34,7 +34,7 @@ import {
 export const Categories = () => {
   // ─── Pagination & filter state (mirrors Questions page) ───────────────────
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(20000);
   const [search, setSearch] = useState("");
 
   // ─── Data fetching ────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ export const Categories = () => {
     isError: isCategoriesError,
   } = useCategories({ page, limit, search: search || undefined });
 
-  const { data: subjectsData, isError: isSubjectsError } = useSubjects({ limit: 2000 });
+  const { data: subjectsData, isError: isSubjectsError } = useSubjects({ limit: 20000 });
 
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();

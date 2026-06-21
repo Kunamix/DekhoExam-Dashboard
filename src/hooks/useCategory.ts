@@ -64,11 +64,18 @@ export const useCategories = (filters?: CategoryFilters) => {
   });
 };
 
-export const useSubjects = (p0: { limit: number; }) => {
+export interface SubjectFilters {
+  page?: number;
+  limit?: number;
+  isActive?: string;
+  search?: string;
+}
+
+export const useSubjects = (filters?: SubjectFilters) => {
   return useQuery({
-    queryKey: ["subjects"],
+    queryKey: ["subjects", filters],
     queryFn: async () => {
-      const { data } = await api.get("/subjects"); // Assuming endpoint is /subjects
+      const { data } = await api.get("/subjects", { params: filters });
       return data;
     },
   });
