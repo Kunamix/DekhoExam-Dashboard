@@ -46,7 +46,7 @@ export const Subjects = () => {
     ...(selectedCategory && { categoryId: selectedCategory }),
   });
 
-  const { data: categoriesData, isError: isCategoriesError } = useCategories();
+  const { data: categoriesData, isError: isCategoriesError } = useCategories({ limit: 10000 });
 
   const createMutation = useCreateSubject();
   const updateMutation = useUpdateSubject();
@@ -421,7 +421,7 @@ export const Subjects = () => {
                 <label className="text-sm font-medium text-muted-foreground">
                   Status:
                 </label>
-                <Badge variant={viewingSubject.isActive ? "success" : "error"}>
+                <Badge variant={viewingSubject.isActive ? "success" : "danger"}>
                   {viewingSubject.isActive ? "Active" : "Inactive"}
                 </Badge>
               </div>

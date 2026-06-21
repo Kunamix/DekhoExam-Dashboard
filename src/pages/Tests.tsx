@@ -62,8 +62,8 @@ export const Tests = () => {
     categoryId: selectedCategory || undefined,
   });
 
-  const { data: categoriesData, isError: isCategoriesError } = useCategories();
-  const { data: subjectsData } = useSubjects({ limit: 10000 });
+  const { data: categoriesData, isError: isCategoriesError } = useCategories({ limit: 10000 });
+  const { data: subjectsData } = useSubjects({ limit: 1000 });
 
   const createMutation = useCreateTest();
   const updateMutation = useUpdateTest();

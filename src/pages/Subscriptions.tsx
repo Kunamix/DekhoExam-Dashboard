@@ -53,7 +53,7 @@ export const Subscriptions = () => {
   const [page, setPage] = useState(1);
   const LIMIT = 9;
 
-  const { data: categoriesData, isError: isCategoriesError } = useCategories();
+  const { data: categoriesData, isError: isCategoriesError } = useCategories({ limit: 10000 });
 
   const { data: statsData, isError: isStatsError } = useSubscriptionStats();
 
@@ -330,18 +330,18 @@ export const Subscriptions = () => {
                   <div className="flex justify-between items-start mb-2">
                     <Badge
                       variant={
-                        plan.type === "ALL_CATEGORIES" ? "primary" : "outline"
+                        plan.type === "ALL_CATEGORIES" ? "primary" : "default"
                       }
-                      className="rounded-md uppercase text-[10px] tracking-wider font-bold"
                     >
-                      {plan.type === "ALL_CATEGORIES"
-                        ? "All Access"
-                        : plan.category?.name}
+                      <span className="rounded-md uppercase text-[10px] tracking-wider font-bold">
+                        {plan.type === "ALL_CATEGORIES"
+                          ? "All Access"
+                          : plan.category?.name}
+                      </span>
                     </Badge>
                     <Toggle
                       checked={plan.isActive}
                       onChange={() => handleToggleActive(plan.id)}
-                      size="sm"
                     />
                   </div>
                   <h3 className="text-xl font-bold text-foreground mb-1">
