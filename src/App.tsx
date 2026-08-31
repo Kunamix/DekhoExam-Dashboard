@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
+import Banners from "./pages/Banners";
 import Subjects from "./pages/Subjects";
 import Questions from "./pages/Questions";
 import Topics from "./pages/Topics";
@@ -45,6 +46,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/banners" element={<Banners />} />
               <Route path="/subjects" element={<Subjects />} />
               <Route path="/questions" element={<Questions />} />
               <Route path="/topics" element={<Topics />} />

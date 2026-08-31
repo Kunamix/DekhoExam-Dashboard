@@ -11,7 +11,8 @@ import {
   BarChart3, 
   Settings,
   ChevronLeft,
-  GraduationCap
+  GraduationCap,
+  Image
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebarContext } from '@/contexts/SidebarContext';
@@ -23,6 +24,7 @@ const menuItems = [
   { icon: FileText, label: 'Topics', path: '/topics' },
   { icon: HelpCircle, label: 'Questions', path: '/questions' },
   { icon: FolderOpen, label: 'Categories', path: '/categories' },
+  { icon: Image, label: 'Banners', path: '/banners' },
   { icon: ClipboardList, label: 'Tests', path: '/tests' },
   { icon: CreditCard, label: 'Subscriptions', path: '/subscriptions' },
   { icon: DollarSign, label: 'Payments', path: '/payments' },
