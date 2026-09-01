@@ -1,10 +1,11 @@
 import axios from 'axios';
+import { env } from 'process';
 
 /* =======================
    ADMIN API (unchanged)
 ======================= */
 const api = axios.create({
-  baseURL: `${"http://localhost:8080/api/v1"}/admin`,
+  baseURL: `${env.VITE_API_BASE_URL}/admin`,
   withCredentials: true,
 });
 
@@ -12,7 +13,7 @@ const api = axios.create({
    MOBILE API (new)
 ======================= */
 export const mobileApi = axios.create({
-  baseURL: `${"http://localhost:8080/api/v1"}/mobile`,
+  baseURL: `${env.VITE_API_BASE_URL}/mobile`,
   withCredentials: true,
 });
 
