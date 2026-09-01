@@ -4,7 +4,7 @@ import axios from 'axios';
    ADMIN API (unchanged)
 ======================= */
 const api = axios.create({
-  baseURL: `${"https://api.dekhoexam.com/api/v1"}/admin`,
+  baseURL: `${"http://localhost:8080/api/v1"}/admin`,
   withCredentials: true,
 });
 
@@ -12,7 +12,7 @@ const api = axios.create({
    MOBILE API (new)
 ======================= */
 export const mobileApi = axios.create({
-  baseURL: `${"https://api.dekhoexam.com/api/v1"}/mobile`,
+  baseURL: `${"http://localhost:8080/api/v1"}/mobile`,
   withCredentials: true,
 });
 
