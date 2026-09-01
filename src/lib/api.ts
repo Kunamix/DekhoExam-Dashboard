@@ -1,27 +1,37 @@
 import axios from 'axios';
-import { env } from 'process';
+
+/* =======================
+   VITE ENVIRONMENT
+======================= */
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 /* =======================
    ADMIN API (unchanged)
 ======================= */
+
 const api = axios.create({
-  baseURL: `${env.VITE_API_BASE_URL}/admin`,
+  baseURL: `${API_BASE_URL}/admin`,
   withCredentials: true,
 });
 
 /* =======================
    MOBILE API (new)
 ======================= */
+
 export const mobileApi = axios.create({
-  baseURL: `${env.VITE_API_BASE_URL}/mobile`,
+  baseURL: `${API_BASE_URL}/mobile`,
   withCredentials: true,
 });
 
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
+const processQueue = (
+  error: any,
+  token: string | null = null
+) => {
+  failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
@@ -34,6 +44,7 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.response.use(
   (response) => response,
+
   async (error) => {
     const originalRequest = error.config;
 
@@ -44,15 +55,22 @@ api.interceptors.response.use(
     const status = error.response.status;
     const url = originalRequest.url || "";
 
-    const isRefreshEndpoint = url.includes("/auth/refresh-token");
-    const isLogoutEndpoint = url.includes("/auth/logout");
+    const isRefreshEndpoint =
+      url.includes("/auth/refresh-token");
+
+    const isLogoutEndpoint =
+      url.includes("/auth/logout");
 
     if (isRefreshEndpoint || isLogoutEndpoint) {
       return Promise.reject(error);
     }
 
-    if (status === 401 && !originalRequest._retry) {
-      const userInfo = localStorage.getItem('user_info');
+    if (
+      status === 401 &&
+      !originalRequest._retry
+    ) {
+      const userInfo =
+        localStorage.getItem("user_info");
 
       if (!userInfo) {
         return Promise.reject(error);
@@ -74,23 +92,26 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await api.post('/auth/refresh-token', {});
-        
+        await api.post("/auth/refresh-token", {});
+
         isRefreshing = false;
-        processQueue(null, 'token');
+
+        processQueue(null, "token");
 
         return api(originalRequest);
+
       } catch (refreshError) {
         isRefreshing = false;
+
         processQueue(refreshError, null);
 
-        localStorage.removeItem('user_info');
+        localStorage.removeItem("user_info");
 
         if (
-          window.location.pathname !== '/' &&
-          !window.location.pathname.includes('/login')
+          window.location.pathname !== "/" &&
+          !window.location.pathname.includes("/login")
         ) {
-          window.location.href = '/';
+          window.location.href = "/";
         }
 
         return Promise.reject(refreshError);
@@ -101,7 +122,88 @@ api.interceptors.response.use(
   }
 );
 
-/* 🔥 OPTIONAL: if you want same interceptor for mobile also */
-mobileApi.interceptors.response = api.interceptors.response;
+/* =======================
+   MOBILE INTERCEPTOR
+======================= */
+
+mobileApi.interceptors.response.use(
+  (response) => response,
+
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (!error.response) {
+      return Promise.reject(error);
+    }
+
+    const status = error.response.status;
+    const url = originalRequest.url || "";
+
+    const isRefreshEndpoint =
+      url.includes("/auth/refresh-token");
+
+    const isLogoutEndpoint =
+      url.includes("/auth/logout");
+
+    if (isRefreshEndpoint || isLogoutEndpoint) {
+      return Promise.reject(error);
+    }
+
+    if (
+      status === 401 &&
+      !originalRequest._retry
+    ) {
+      const userInfo =
+        localStorage.getItem("user_info");
+
+      if (!userInfo) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => {
+            return mobileApi(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        await mobileApi.post("/auth/refresh-token", {});
+
+        isRefreshing = false;
+
+        processQueue(null, "token");
+
+        return mobileApi(originalRequest);
+
+      } catch (refreshError) {
+        isRefreshing = false;
+
+        processQueue(refreshError, null);
+
+        localStorage.removeItem("user_info");
+
+        if (
+          window.location.pathname !== "/" &&
+          !window.location.pathname.includes("/login")
+        ) {
+          window.location.href = "/";
+        }
+
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default api;
